@@ -1,0 +1,61 @@
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class CryptoExplorer:
+    def __init__(self):
+        self.api_url = 'https://api.coingecko.com/api/v3'
+
+    def get_crypto_data(self, crypto_id: str) -> dict:
+        url = f"{self.api_url}/coins/{crypto_id}"
+        response = requests.get(url)
+        return response.json()
+
+    def get_crypto_market_data(self, crypto_id: str, vs_currency: str = 'usd') -> dict:
+        url = f"{self.api_url}/coins/{crypto_id}/market_chart"
+        params = {
+            'vs_currency': vs_currency,
+            'days': '30'
+        }
+        response = requests.get(url, params=params)
+        return response.json()
+
+    def get_crypto_historical_data(self, crypto_id: str, vs_currency: str = 'usd', days: int = 30) -> pd.DataFrame:
+        url = f"{self.api_url}/coins/{crypto_id}/market_chart"
+        params = {
+            'vs_currency': vs_currency,
+            'days': days
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        prices = data['prices']
+        df = pd.DataFrame(prices, columns=['timestamp', 'price'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        return df
+
+    def plot_crypto_trend(self, crypto_id: str, vs_currency: str = 'usd', days: int = 30):
+        df = self.get_crypto_historical_data(crypto_id, vs_currency, days)
+        if df.empty:
+            print("No historical data found.")
+            return
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(df['timestamp'], df['price'], marker='o', linestyle='-')
+        plt.title(f'{crypto_id.capitalize()} Price Trend')
+        plt.xlabel('Date')
+        plt.ylabel(f'Price ({vs_currency.upper()})')
+        plt.grid(True)
+        plt.show()
+
+# Example Usage
+if __name__ == "__main__":
+    crypto_explorer = CryptoExplorer()
+
+    # Fetch and Display Cryptocurrency Data
+    crypto_id = 'bitcoin'  # Replace with the cryptocurrency ID you want to explore
+    crypto_data = crypto_explorer.get_crypto_data(crypto_id)
+    print(f"Cryptocurrency Data for {crypto_id}:")
+    print(crypto_data)
+
+    # Fetch and Display Historical Data and Plot Trend
+    crypto_explorer.plot_crypto_trend(crypto_id=crypto_id, days=30)
